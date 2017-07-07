@@ -1,9 +1,9 @@
-package com.example.chatty.service;
+package com.example.chatty.presenter;
 
 import android.view.View;
 
 /**
- * Created by 1 on 07.07.2017.
+ * Interface for communication between service and presenter
  */
 
 public interface SessionCommunicator {
@@ -12,4 +12,6 @@ public interface SessionCommunicator {
     void streamReceived(View view);
 
     void onNewSubscriber(View view);
+
+    void onError();
 }

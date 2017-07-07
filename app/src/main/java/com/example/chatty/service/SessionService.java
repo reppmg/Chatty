@@ -8,7 +8,9 @@ import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.example.chatty.presenter.SessionCommunicator;
 import com.opentok.android.OpentokError;
 import com.opentok.android.Publisher;
 import com.opentok.android.PublisherKit;
@@ -20,11 +22,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * Created by 1 on 06.07.2017.
+ * Service, dealing with communication with OpenTok.
+ * Listens for events from OpenTok about another user connecting, disconnecting etc
+ *
  */
 
 public class SessionService implements Session.SessionListener, PublisherKit.PublisherListener {
     private static final String LOG_TAG = Session.SessionListener.class.getSimpleName();
+    private static final String appURL = "https://onetock.herokuapp.com";
 
     private String API_KEY;
     private String SESSION_ID;
@@ -36,7 +41,6 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
     private Publisher mPublisher;
     private Session mSession;
 
-
     private SessionCommunicator mSessionCommunicator;
 
     public SessionService(Context context) {
@@ -44,10 +48,14 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         mPublisher = new Publisher.Builder(context).build();
     }
 
+
+    /**
+     * fetching data (api_key, sessionId, token) from server, that puts the user in queue
+     */
     public void fetchSessionConnectionData() {
         RequestQueue reqQueue = Volley.newRequestQueue(mContext);
         reqQueue.add(new JsonObjectRequest(Request.Method.GET,
-                "https://onetock.herokuapp.com" + "/session",
+                appURL + "/session",
                 null, new Response.Listener<JSONObject>() {
 
             @Override
@@ -73,6 +81,7 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
             @Override
             public void onErrorResponse(VolleyError error) {
                 Log.e(LOG_TAG, "Web Service error: " + error.getMessage());
+                mSessionCommunicator.onError();
             }
         }));
     }
@@ -84,6 +93,7 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         mPublisher = new Publisher.Builder(mContext).build();
         mPublisher.setPublisherListener(this);
 
+
         mSessionCommunicator.onNewSubscriber(mPublisher.getView());
         mSession.publish(mPublisher);
     }
@@ -93,6 +103,11 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         Log.i(LOG_TAG, "Session Disconnected");
     }
 
+
+    /**
+     * Another user is connected to the session
+     * passing the view with video to presenter
+     */
     @Override
     public void onStreamReceived(Session session, Stream stream) {
         Log.i(LOG_TAG, "Stream Received");
@@ -104,18 +119,25 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         }
     }
 
+
+    /**
+     * When opponent disconnects, put user back in waiting queue
+     */
     @Override
     public void onStreamDropped(Session session, Stream stream) {
         Log.i(LOG_TAG, "Stream Dropped");
+        //put me in queue again
         if (mSubscriber != null) {
             mSubscriber = null;
             mSessionCommunicator.dropView();
         }
+        fetchSessionConnectionData();
     }
 
     @Override
     public void onError(Session session, OpentokError opentokError) {
         Log.e(LOG_TAG, "Session error: " + opentokError.getMessage());
+        mSessionCommunicator.onError();
     }
 
     @Override
@@ -130,10 +152,30 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
 
     @Override
     public void onError(PublisherKit publisherKit, OpentokError opentokError) {
-
+        mSessionCommunicator.onError();
     }
 
     public void setPresenter(SessionCommunicator presenter) {
         this.mSessionCommunicator = presenter;
+    }
+
+
+    /*When user is in queue, and application closes*/
+    public void unsubscribe() {
+        RequestQueue request = Volley.newRequestQueue(mContext);
+        request.add(new StringRequest(Request.Method.GET,
+                appURL + "/unsubscribe/" + mSession.getSessionId(),
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+
+                    }
+                }));
     }
 }

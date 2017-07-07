@@ -4,18 +4,19 @@ import android.content.Context;
 import android.view.View;
 
 /**
- * Created by 1 on 06.07.2017.
+ * Interface provided by the activity, so Presenter can communicate with it
  */
 
 public interface ViewContract {
 
-    void updateSubscriberSource(View view);
+    void setSubscriberSource(View view);
 
     void setPublisherSource(View view);
 
     void dropView();
 
+    void setErrorView();
+
     Context getContext();
 
-    void permissionsGranted();
 }

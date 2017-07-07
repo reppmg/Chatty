@@ -3,14 +3,13 @@ package com.example.chatty.presenter;
 import com.example.chatty.ui.ViewContract;
 
 /**
- * Created by 1 on 06.07.2017.
+ * Interface for communication between Presenter and Activity
  */
+public interface Presenter  {
 
-public interface Presenter {
-    void inject(ViewContract viewContract);
-    void fetchData();
-
-    void requestPermissions();
+    void subscribe();
 
     void setViewContract(ViewContract mainActivity);
+
+    void unsubscribe();
 }
