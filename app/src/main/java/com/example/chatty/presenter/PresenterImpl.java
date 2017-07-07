@@ -27,13 +27,6 @@ public class PresenterImpl implements Presenter, SessionCommunicator {
         this.mViewContract = viewContract;
     }
 
-    @Override
-    public void onStart() {
-        mSessionService.fetchSessionConnectionData();
-
-    }
-
-
     /**
      * Tells server, that user, obtained session, is gone and session should be lost
      */
@@ -51,7 +44,7 @@ public class PresenterImpl implements Presenter, SessionCommunicator {
     }
 
 
-    public void onNewSubscriber(View view) {
+    public void showPublisher(View view) {
         mViewContract.setPublisherSource(view);
     }
 

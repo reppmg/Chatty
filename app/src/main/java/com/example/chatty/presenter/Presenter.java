@@ -13,5 +13,4 @@ public interface Presenter  {
 
     void unsubscribe();
 
-    void onStart();
 }

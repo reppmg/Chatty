@@ -57,14 +57,9 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
         requestPermissions();
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        presenter.onStart();
-    }
 
     /**
-     * clearing connection and layout jn exit
+     * clearing connection and layout on exit
      */
     @Override
     protected void onStop() {
@@ -72,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
         presenter.unsubscribe();
         mSubscriberViewContainer.removeAllViews();
         mPublisherViewContainer.removeAllViews();
+        finish();
     }
 
     /*Permissions handling*/

@@ -11,7 +11,7 @@ public interface SessionCommunicator {
 
     void streamReceived(View view);
 
-    void onNewSubscriber(View view);
+    void showPublisher(View view);
 
     void onError();
 }

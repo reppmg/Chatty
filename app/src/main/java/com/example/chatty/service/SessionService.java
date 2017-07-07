@@ -53,44 +53,39 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
      * fetching data (api_key, sessionId, token) from server, that puts the user in queue
      */
     public void fetchSessionConnectionData() {
-        if (mSession == null && !requestingSession) {
-            requestingSession = true;
-            Log.d(LOG_TAG, "fetchSessionConnectionData: session is null, trying to obtain session");
-            RequestQueue reqQueue = Volley.newRequestQueue(mContext);
-            reqQueue.add(new JsonObjectRequest(Request.Method.GET,
-                    appURL + "/session",
-                    null, new Response.Listener<JSONObject>() {
+        Log.d(LOG_TAG, "fetchSessionConnectionData: session is null, trying to obtain session");
+        RequestQueue reqQueue = Volley.newRequestQueue(mContext);
+        reqQueue.add(new JsonObjectRequest(Request.Method.GET,
+                appURL + "/session",
+                null, new Response.Listener<JSONObject>() {
 
-                @Override
-                public void onResponse(JSONObject response) {
-                    try {
-                        api_key = response.getString("apiKey");
-                        session_id = response.getString("sessionId");
-                        token = response.getString("token");
+            @Override
+            public void onResponse(JSONObject response) {
+                try {
+                    api_key = response.getString("apiKey");
+                    session_id = response.getString("sessionId");
+                    token = response.getString("token");
 
-                        if (mSession == null) {
-                            Log.i(LOG_TAG, "API_KEY: " + api_key);
-                            Log.i(LOG_TAG, "SESSION_ID: " + session_id);
-                            Log.i(LOG_TAG, "TOKEN: " + token);
+                    Log.i(LOG_TAG, "API_KEY: " + api_key);
+                    Log.i(LOG_TAG, "SESSION_ID: " + session_id);
+                    Log.i(LOG_TAG, "TOKEN: " + token);
 
-                            mSession = new Session.Builder(mContext, api_key, session_id).build();
-                            mSession.setSessionListener(SessionService.this);
-                            mSession.connect(token);
-                            requestingSession = false;
-                        }
+                    mSession = new Session.Builder(mContext, api_key, session_id).build();
+                    mSession.setSessionListener(SessionService.this);
+                    mSession.connect(token);
+                    requestingSession = false;
 
-                    } catch (JSONException error) {
-                        Log.e(LOG_TAG, "Web Service error: " + error.getMessage());
-                    }
-                }
-            }, new Response.ErrorListener() {
-                @Override
-                public void onErrorResponse(VolleyError error) {
+                } catch (JSONException error) {
                     Log.e(LOG_TAG, "Web Service error: " + error.getMessage());
-                    mSessionCommunicator.onError();
                 }
-            }));
-        }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e(LOG_TAG, "Web Service error: " + error.getMessage());
+                mSessionCommunicator.onError();
+            }
+        }));
     }
 
     @Override
@@ -100,7 +95,7 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         mPublisher = new Publisher.Builder(mContext).build();
         mPublisher.setPublisherListener(this);
 
-        mSessionCommunicator.onNewSubscriber(mPublisher.getView());
+        mSessionCommunicator.showPublisher(mPublisher.getView());
         mSession.publish(mPublisher);
     }
 
@@ -139,16 +134,15 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
     public void onStreamDropped(Session session, Stream stream) {
         Log.i(LOG_TAG, "Stream Dropped");
         //put me in queue again
-        if (mSubscriber != null) {
-            mSubscriber = null;
-            mSessionCommunicator.dropView();
-        }
+        session.disconnect();
+        mSessionCommunicator.dropView();
         fetchSessionConnectionData();
     }
 
     @Override
     public void onError(Session session, OpentokError opentokError) {
         Log.e(LOG_TAG, "Session error: " + opentokError.getMessage());
+        session.disconnect();
         mSessionCommunicator.onError();
     }
 
