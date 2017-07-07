@@ -17,6 +17,7 @@ public interface ViewContract {
 
     void setErrorView();
 
+
     Context getContext();
 
 }

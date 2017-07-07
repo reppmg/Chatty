@@ -12,4 +12,6 @@ public interface Presenter  {
     void setViewContract(ViewContract mainActivity);
 
     void unsubscribe();
+
+    void onStart();
 }

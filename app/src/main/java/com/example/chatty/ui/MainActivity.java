@@ -41,7 +41,6 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
     private View mWaitingView;
     private View mErrorView;
 
-    private boolean permissionsGranted = false;
 
     @Inject
     Presenter presenter;
@@ -61,9 +60,7 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
     @Override
     protected void onStart() {
         super.onStart();
-        if (permissionsGranted){
-            presenter.subscribe();
-        }
+        presenter.onStart();
     }
 
     /**
@@ -86,7 +83,6 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
     private void requestPermissions() {
         String[] perms = {Manifest.permission.INTERNET, Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO};
         if (EasyPermissions.hasPermissions(this, perms)) {
-            permissionsGranted = true;
             // initializing view objects from layout
             mPublisherViewContainer = (FrameLayout) findViewById(R.id.publisher_container);
             mSubscriberViewContainer = (FrameLayout) findViewById(R.id.subscriber_container);

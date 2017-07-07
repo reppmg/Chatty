@@ -24,16 +24,15 @@ import org.json.JSONObject;
 /**
  * Service, dealing with communication with OpenTok.
  * Listens for events from OpenTok about another user connecting, disconnecting etc
- *
  */
 
 public class SessionService implements Session.SessionListener, PublisherKit.PublisherListener {
     private static final String LOG_TAG = Session.SessionListener.class.getSimpleName();
     private static final String appURL = "https://onetock.herokuapp.com";
 
-    private String API_KEY;
-    private String SESSION_ID;
-    private String TOKEN;
+    private String api_key;
+    private String session_id;
+    private String token;
 
     private final Context mContext;
 
@@ -52,37 +51,40 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
      * fetching data (api_key, sessionId, token) from server, that puts the user in queue
      */
     public void fetchSessionConnectionData() {
-        RequestQueue reqQueue = Volley.newRequestQueue(mContext);
-        reqQueue.add(new JsonObjectRequest(Request.Method.GET,
-                appURL + "/session",
-                null, new Response.Listener<JSONObject>() {
+        if (mSession == null) {
 
-            @Override
-            public void onResponse(JSONObject response) {
-                try {
-                    API_KEY = response.getString("apiKey");
-                    SESSION_ID = response.getString("sessionId");
-                    TOKEN = response.getString("token");
+            RequestQueue reqQueue = Volley.newRequestQueue(mContext);
+            reqQueue.add(new JsonObjectRequest(Request.Method.GET,
+                    appURL + "/session",
+                    null, new Response.Listener<JSONObject>() {
 
-                    Log.i(LOG_TAG, "API_KEY: " + API_KEY);
-                    Log.i(LOG_TAG, "SESSION_ID: " + SESSION_ID);
-                    Log.i(LOG_TAG, "TOKEN: " + TOKEN);
+                @Override
+                public void onResponse(JSONObject response) {
+                    try {
+                        api_key = response.getString("apiKey");
+                        session_id = response.getString("sessionId");
+                        token = response.getString("token");
 
-                    mSession = new Session.Builder(mContext, API_KEY, SESSION_ID).build();
-                    mSession.setSessionListener(SessionService.this);
-                    mSession.connect(TOKEN);
+                        Log.i(LOG_TAG, "API_KEY: " + api_key);
+                        Log.i(LOG_TAG, "SESSION_ID: " + session_id);
+                        Log.i(LOG_TAG, "TOKEN: " + token);
 
-                } catch (JSONException error) {
-                    Log.e(LOG_TAG, "Web Service error: " + error.getMessage());
+                        mSession = new Session.Builder(mContext, api_key, session_id).build();
+                        mSession.setSessionListener(SessionService.this);
+                        mSession.connect(token);
+
+                    } catch (JSONException error) {
+                        Log.e(LOG_TAG, "Web Service error: " + error.getMessage());
+                    }
                 }
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e(LOG_TAG, "Web Service error: " + error.getMessage());
-                mSessionCommunicator.onError();
-            }
-        }));
+            }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    Log.e(LOG_TAG, "Web Service error: " + error.getMessage());
+                    mSessionCommunicator.onError();
+                }
+            }));
+        }
     }
 
     @Override
@@ -105,6 +107,7 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         if (mSubscriber != null) {
             mSubscriber.destroy();
         }
+        mSession = null;
     }
 
 
@@ -116,11 +119,10 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
     public void onStreamReceived(Session session, Stream stream) {
         Log.i(LOG_TAG, "Stream Received");
 
-        if (mSubscriber == null) {
+        if (mSubscriber == null)
             mSubscriber = new Subscriber.Builder(mContext, stream).build();
-            mSession.subscribe(mSubscriber);
-            mSessionCommunicator.streamReceived(mSubscriber.getView());
-        }
+        mSession.subscribe(mSubscriber);
+        mSessionCommunicator.streamReceived(mSubscriber.getView());
     }
 
 
@@ -166,24 +168,28 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
 
     /*When user is in queue, and application closes*/
     public void unsubscribe() {
-        if (mSession != null){
-            mSession.disconnect();
+        if (mSession != null) {
+            RequestQueue request = Volley.newRequestQueue(mContext);
+            request.add(new StringRequest(Request.Method.GET,
+                    appURL + "/unsubscribe/" + mSession.getSessionId(),
+                    new Response.Listener<String>() {
+                        @Override
+                        public void onResponse(String response) {
+
+                        }
+                    },
+                    new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+
+                        }
+                    }));
         }
-        RequestQueue request = Volley.newRequestQueue(mContext);
-        request.add(new StringRequest(Request.Method.GET,
-                appURL + "/unsubscribe/" + mSession.getSessionId(),
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
+    }
 
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-
-                    }
-                }));
+    public void disconnect() {
+        if (mSession != null)
+            mSession.disconnect();
     }
 
 }
