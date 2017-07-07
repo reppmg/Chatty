@@ -13,9 +13,6 @@ import javax.inject.Singleton;
 import dagger.Module;
 import dagger.Provides;
 
-/**
- * Created by 1 on 06.07.2017.
- */
 @Module
 public class AppModule {
     private final App app;
@@ -50,16 +47,6 @@ public class AppModule {
         return new PresenterImpl();
     }
 
-//    @Provides
-//    @Singleton
-//    SessionCommunicator provideSessionCommunicator(PresenterImpl presenter) {
-//        return presenter;
-//    }
-//
-//    @Provides
-//    @Singleton
-//    Presenter providePresenter(PresenterImpl presenter) {
-//        return presenter;
-//    }
+
 }
 

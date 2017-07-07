@@ -14,14 +14,16 @@ public class PresenterImpl implements Presenter, SessionCommunicator {
     private ViewContract mViewContract;
 
 
-
     public void setViewContract(ViewContract viewContract) {
         this.mViewContract = viewContract;
     }
 
     @Override
     public void unsubscribe() {
-        mSessionService.unsubscribe();
+        if (mSessionService != null) {
+            mSessionService.unsubscribe();
+
+        }
         mSessionService = null;
     }
 
@@ -33,7 +35,7 @@ public class PresenterImpl implements Presenter, SessionCommunicator {
     }
 
 
-    public void onNewSubscriber(View view){
+    public void onNewSubscriber(View view) {
         mViewContract.setPublisherSource(view);
     }
 

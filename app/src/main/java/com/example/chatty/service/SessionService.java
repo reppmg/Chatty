@@ -45,7 +45,6 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
 
     public SessionService(Context context) {
         mContext = context;
-        mPublisher = new Publisher.Builder(context).build();
     }
 
 
@@ -93,7 +92,6 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         mPublisher = new Publisher.Builder(mContext).build();
         mPublisher.setPublisherListener(this);
 
-
         mSessionCommunicator.onNewSubscriber(mPublisher.getView());
         mSession.publish(mPublisher);
     }
@@ -101,6 +99,12 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
     @Override
     public void onDisconnected(Session session) {
         Log.i(LOG_TAG, "Session Disconnected");
+        if (mPublisher != null) {
+            mPublisher.destroy();
+        }
+        if (mSubscriber != null) {
+            mSubscriber.destroy();
+        }
     }
 
 
@@ -147,7 +151,7 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
 
     @Override
     public void onStreamDestroyed(PublisherKit publisherKit, Stream stream) {
-
+        unsubscribe();
     }
 
     @Override
@@ -162,6 +166,9 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
 
     /*When user is in queue, and application closes*/
     public void unsubscribe() {
+        if (mSession != null){
+            mSession.disconnect();
+        }
         RequestQueue request = Volley.newRequestQueue(mContext);
         request.add(new StringRequest(Request.Method.GET,
                 appURL + "/unsubscribe/" + mSession.getSessionId(),
@@ -178,4 +185,5 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
                     }
                 }));
     }
+
 }
