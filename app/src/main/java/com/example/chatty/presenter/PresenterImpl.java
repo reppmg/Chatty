@@ -33,6 +33,10 @@ public class PresenterImpl implements Presenter, SessionCommunicator {
 
     }
 
+
+    /**
+     * Tells server, that user, obtained session, is gone and session should be lost
+     */
     @Override
     public void unsubscribe() {
         if (mSessionService != null) {

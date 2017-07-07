@@ -143,13 +143,6 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
                 .show();
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        presenter.unsubscribe();
-    }
-
-
     /*ViewContract interface methods*/
 
     /**

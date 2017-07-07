@@ -42,6 +42,8 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
 
     private SessionCommunicator mSessionCommunicator;
 
+    private boolean requestingSession = false;
+
     public SessionService(Context context) {
         mContext = context;
     }
@@ -51,8 +53,9 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
      * fetching data (api_key, sessionId, token) from server, that puts the user in queue
      */
     public void fetchSessionConnectionData() {
-        if (mSession == null) {
-
+        if (mSession == null && !requestingSession) {
+            requestingSession = true;
+            Log.d(LOG_TAG, "fetchSessionConnectionData: session is null, trying to obtain session");
             RequestQueue reqQueue = Volley.newRequestQueue(mContext);
             reqQueue.add(new JsonObjectRequest(Request.Method.GET,
                     appURL + "/session",
@@ -65,13 +68,16 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
                         session_id = response.getString("sessionId");
                         token = response.getString("token");
 
-                        Log.i(LOG_TAG, "API_KEY: " + api_key);
-                        Log.i(LOG_TAG, "SESSION_ID: " + session_id);
-                        Log.i(LOG_TAG, "TOKEN: " + token);
+                        if (mSession == null) {
+                            Log.i(LOG_TAG, "API_KEY: " + api_key);
+                            Log.i(LOG_TAG, "SESSION_ID: " + session_id);
+                            Log.i(LOG_TAG, "TOKEN: " + token);
 
-                        mSession = new Session.Builder(mContext, api_key, session_id).build();
-                        mSession.setSessionListener(SessionService.this);
-                        mSession.connect(token);
+                            mSession = new Session.Builder(mContext, api_key, session_id).build();
+                            mSession.setSessionListener(SessionService.this);
+                            mSession.connect(token);
+                            requestingSession = false;
+                        }
 
                     } catch (JSONException error) {
                         Log.e(LOG_TAG, "Web Service error: " + error.getMessage());
