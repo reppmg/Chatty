@@ -13,9 +13,9 @@ public interface ViewContract {
 
     void setPublisherSource(View view);
 
-    void dropView();
+    void dropSubscriberView();
 
-    void setErrorView();
+    void setSubscriberErrorView();
 
 
     Context getContext();

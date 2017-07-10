@@ -1,5 +1,8 @@
 package com.example.chatty.presenter;
 
+import android.os.Bundle;
+import android.view.View;
+
 import com.example.chatty.ui.ViewContract;
 
 /**
@@ -13,4 +16,15 @@ public interface Presenter  {
 
     void unsubscribe();
 
+    void onSaveInstanceState(Bundle outState);
+
+    void onRestoreState(Bundle savedInstanceState);
+
+    void disconnect();
+
+    View getPublisherView();
+
+    View getSubscriberView();
+
+    boolean isInSession();
 }

@@ -7,7 +7,7 @@ import android.view.View;
  */
 
 public interface SessionCommunicator {
-    void dropView();
+    void dropSubscriberView();
 
     void streamReceived(View view);
 

@@ -21,6 +21,7 @@ import com.example.chatty.App;
 import com.example.chatty.presenter.Presenter;
 import com.example.chatty.R;
 
+import java.util.Arrays;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -30,8 +31,8 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 public class MainActivity extends AppCompatActivity implements ViewContract, EasyPermissions.PermissionCallbacks {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
-    private static final int RC_SETTINGS_SCREEN_PERM = 123;
     private static final int RC_VIDEO_APP_PERM = 124;
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     /*Containers for video*/
     private FrameLayout mPublisherViewContainer;
@@ -42,6 +43,9 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
     private View mErrorView;
 
 
+    private boolean onSavedWasCalled = false;
+
+
     @Inject
     Presenter presenter;
 
@@ -49,14 +53,24 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.d(TAG, "onCreate: savedState = null: " + (savedInstanceState == null));
+
+        onSavedWasCalled = false;
 
         App.getAppComponent().inject(this);
 
         presenter.setViewContract(this);
 
         requestPermissions();
+
     }
 
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart: ");
+    }
 
     /**
      * clearing connection and layout on exit
@@ -64,10 +78,23 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
     @Override
     protected void onStop() {
         super.onStop();
-        presenter.unsubscribe();
-        mSubscriberViewContainer.removeAllViews();
-        mPublisherViewContainer.removeAllViews();
-        finish();
+        Log.d(TAG, "onStop: ");
+
+//        if (!onSavedWasCalled) {
+//            //assuming this is exit case
+//            presenter.unsubscribe();
+//            presenter.disconnect();
+//            finish();
+//        }
+
+        try {
+            mSubscriberViewContainer.removeAllViews();
+            mPublisherViewContainer.removeAllViews();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+//        finish();
     }
 
     /*Permissions handling*/
@@ -76,29 +103,42 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
      * Asks video and audio recording permissions from user
      */
     @AfterPermissionGranted(RC_VIDEO_APP_PERM)
-    private void requestPermissions() {
+    private boolean requestPermissions() {
+        Log.d(TAG, "requestPermissions: ");
         String[] perms = {Manifest.permission.INTERNET, Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO};
         if (EasyPermissions.hasPermissions(this, perms)) {
             // initializing view objects from layout
-            mPublisherViewContainer = (FrameLayout) findViewById(R.id.publisher_container);
-            mSubscriberViewContainer = (FrameLayout) findViewById(R.id.subscriber_container);
-
-            mWaitingView = View.inflate(this, R.layout.waiting_for_opponent_view, null);
-            mErrorView = View.inflate(this, R.layout.error_view, null);
-            mSubscriberViewContainer.addView(mWaitingView);
+            initViewContainers();
 
             // initialize and connect to the session
             Log.i(LOG_TAG, "subscribing");
-            presenter.subscribe();
+            if (presenter.isInSession()) {
+                setSubscriberSource(presenter.getSubscriberView());
+                setPublisherSource(presenter.getPublisherView());
+            } else {
+                presenter.subscribe();
+            }
+            return true;
         } else {
             EasyPermissions.requestPermissions(this, getString(R.string.permissions_needed_explanation), RC_VIDEO_APP_PERM, perms);
         }
+        return false;
+    }
+
+    private void initViewContainers() {
+        mPublisherViewContainer = (FrameLayout) findViewById(R.id.publisher_container);
+        mSubscriberViewContainer = (FrameLayout) findViewById(R.id.subscriber_container);
+
+        mWaitingView = View.inflate(this, R.layout.waiting_for_opponent_view, null);
+        mErrorView = View.inflate(this, R.layout.error_view, null);
+        mSubscriberViewContainer.addView(mWaitingView);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        Log.d(TAG, "onRequestPermissionsResult: grant=" + Arrays.toString(grantResults));
         EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
     }
 
@@ -143,19 +183,35 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
 
     /**
      * Set the preview from camera
+     *
      * @param view, containing video stream
      */
     @Override
     public void setPublisherSource(View view) {
-        mPublisherViewContainer.removeAllViews();
-        mPublisherViewContainer.addView(view);
+        if (view != null) {
+            mPublisherViewContainer.removeAllViews();
+            mPublisherViewContainer.addView(view);
+        }
+    }
+
+    /**
+     * Set the opponent's video
+     *
+     * @param view, containing video stream
+     */
+    @Override
+    public void setSubscriberSource(View view) {
+        if (view != null) {
+            mSubscriberViewContainer.removeAllViews();
+            mSubscriberViewContainer.addView(view);
+        }
     }
 
     /**
      * Set error message in area for opponent video
      */
     @Override
-    public void setErrorView() {
+    public void setSubscriberErrorView() {
         mSubscriberViewContainer.removeAllViews();
         mSubscriberViewContainer.addView(mErrorView);
     }
@@ -164,23 +220,36 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
      * Clears view when opponent leaves chat
      */
     @Override
-    public void dropView() {
+    public void dropSubscriberView() {
         mSubscriberViewContainer.removeAllViews();
         mSubscriberViewContainer.addView(mWaitingView);
     }
 
-    /**
-     * Set the opponent's video
-     * @param view, containing video stream
-     */
-    @Override
-    public void setSubscriberSource(View view) {
-        mSubscriberViewContainer.removeAllViews();
-        mSubscriberViewContainer.addView(view);
-    }
 
     @Override
     public Context getContext() {
         return getApplicationContext();
+    }
+
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        Log.d(TAG, "onSaveInstanceState: ");
+        onSavedWasCalled = true;
+        presenter.onSaveInstanceState(outState);
+    }
+
+//    @Override
+//    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+//        Log.d(TAG, "onRestoreInstanceState: bundle is null " + (savedInstanceState == null));
+////        super.onRestoreInstanceState(savedInstanceState);
+////        presenter.onRestoreState(savedInstanceState);
+//    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "onDestroy: ");
     }
 }

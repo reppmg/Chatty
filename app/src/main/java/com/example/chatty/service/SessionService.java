@@ -2,6 +2,7 @@ package com.example.chatty.service;
 
 import android.content.Context;
 import android.util.Log;
+import android.view.View;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -27,11 +28,11 @@ import org.json.JSONObject;
  */
 
 public class SessionService implements Session.SessionListener, PublisherKit.PublisherListener {
-    private static final String TAG = Session.SessionListener.class.getSimpleName();
+    private static final String TAG = SessionService.class.getSimpleName();
     private static final String appURL = "https://onetock.herokuapp.com";
 
-    private String api_key;
-    private String session_id;
+    private String apiKey;
+    private String sessionId;
     private String token;
 
     private final Context mContext;
@@ -41,39 +42,37 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
     private Session mSession;
 
     private SessionCommunicator mSessionCommunicator;
-
-    private boolean requestingSession = false;
+    private RequestQueue mRequestQueue;
 
     public SessionService(Context context) {
         mContext = context;
+        mRequestQueue = Volley.newRequestQueue(mContext);
     }
 
 
     /**
-     * fetching data (api_key, sessionId, token) from server, that puts the user in queue
+     * fetching data (apiKey, sessionId, token) from server, that puts the user in queue
      */
     public void fetchSessionConnectionData() {
-        Log.d(TAG, "fetchSessionConnectionData: session is null, trying to obtain session");
-        RequestQueue reqQueue = Volley.newRequestQueue(mContext);
-        reqQueue.add(new JsonObjectRequest(Request.Method.GET,
+        Log.d(TAG, "fetchSessionConnectionData: ");
+        mRequestQueue.add(new JsonObjectRequest(Request.Method.GET,
                 appURL + "/session",
                 null, new Response.Listener<JSONObject>() {
 
             @Override
             public void onResponse(JSONObject response) {
                 try {
-                    api_key = response.getString("apiKey");
-                    session_id = response.getString("sessionId");
+                    apiKey = response.getString("apiKey");
+                    sessionId = response.getString("sessionId");
                     token = response.getString("token");
 
-                    Log.i(TAG, "API_KEY: " + api_key);
-                    Log.i(TAG, "SESSION_ID: " + session_id);
+                    Log.i(TAG, "API_KEY: " + apiKey);
+                    Log.i(TAG, "SESSION_ID: " + sessionId);
                     Log.i(TAG, "TOKEN: " + token);
 
-                    mSession = new Session.Builder(mContext, api_key, session_id).build();
+                    mSession = new Session.Builder(mContext, apiKey, sessionId).build();
                     mSession.setSessionListener(SessionService.this);
                     mSession.connect(token);
-                    requestingSession = false;
 
                 } catch (JSONException error) {
                     Log.e(TAG, "Web Service error: " + error.getMessage());
@@ -92,13 +91,15 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
     public void onConnected(Session session) {
         Log.i(TAG, "Session Connected");
 
+        //we've connected to the session, so can explicitly set WaitingView
+        mSessionCommunicator.dropSubscriberView();
+
         mPublisher = new Publisher.Builder(mContext).build();
         mPublisher.setPublisherListener(this);
 
-
+        mSession.publish(mPublisher);
         mSessionCommunicator.showPublisher(mPublisher.getView());
         Log.d(TAG, "mPublisher: publishing the stream");
-        mSession.publish(mPublisher);
     }
 
     @Override
@@ -137,7 +138,7 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         Log.i(TAG, "Stream Dropped");
         //put me in queue again
         session.disconnect();
-        mSessionCommunicator.dropView();
+        mSessionCommunicator.dropSubscriberView();
         fetchSessionConnectionData();
     }
 
@@ -150,26 +151,40 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
 
     @Override
     public void onStreamCreated(PublisherKit publisherKit, Stream stream) {
+        Log.d(TAG, "onStreamCreated: ");
 
     }
 
     @Override
     public void onStreamDestroyed(PublisherKit publisherKit, Stream stream) {
+        Log.d(TAG, "onStreamDestroyed: ");
         unsubscribe();
     }
 
     @Override
     public void onError(PublisherKit publisherKit, OpentokError opentokError) {
+        Log.d(TAG, "onError: " + opentokError.getMessage());
         mSessionCommunicator.onError();
     }
 
     public void setPresenter(SessionCommunicator presenter) {
+        Log.d(TAG, "setPresenter: ");
         this.mSessionCommunicator = presenter;
     }
 
-
     /*When user is in queue, and application closes*/
     public void unsubscribe() {
+//        try {
+//            //cancel all foreground request, because we're going to launch it again
+//            mRequestQueue.cancelAll(new RequestQueue.RequestFilter() {
+//                @Override
+//                public boolean apply(Request<?> request) {
+//                    return true;
+//                }
+//            });
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         if (mSession != null) {
             RequestQueue request = Volley.newRequestQueue(mContext);
             request.add(new StringRequest(Request.Method.GET,
@@ -177,12 +192,13 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
                     new Response.Listener<String>() {
                         @Override
                         public void onResponse(String response) {
-
+                            Log.d(TAG, "unsubscribe onResponse: " + response);
                         }
                     },
                     new Response.ErrorListener() {
                         @Override
                         public void onErrorResponse(VolleyError error) {
+                            Log.d(TAG, "unsubscribe onErrorResponse: " + error.getMessage());
 
                         }
                     }));
@@ -194,7 +210,53 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         if (mSession != null) {
             Log.d(TAG, "disconnect: sessionId: " + mSession.getSessionId());
             mSession.disconnect();
+            mSession = null;
         }
     }
 
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public View getPublisherView(){
+        if (mPublisher == null)
+            return null;
+        mSession.publish(mPublisher);
+        return mPublisher.getView();
+    }
+
+    public View getSubscriberView(){
+        if (mSubscriber == null){
+            return  null;
+        }
+        return mSubscriber.getView();
+    }
+
+//    public void restoreSession(String apiKey, String session, String token) {
+//
+////        Log.d(TAG, "restoreSession; session: " + session);
+////        this.apiKey = apiKey;
+////        this.sessionId = session;
+////        this.token = token;
+////        mSession = new Session.Builder(mContext, apiKey, session).build();
+////        mSession.connect(token);
+//    }
+    public void restoreSession(){
+        if (mSubscriber == null){
+            //if there was no chat before rotation
+//            fetchSessionConnectionData();
+        }
+    }
+
+    public boolean isInSession(){
+        return mSession != null;
+    }
 }
