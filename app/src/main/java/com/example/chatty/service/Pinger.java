@@ -7,9 +7,6 @@ import com.example.chatty.presenter.SessionCommunicator;
 import com.opentok.android.Connection;
 import com.opentok.android.Session;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 /**
  * Created by 1 on 11.07.2017.
  */
@@ -20,8 +17,8 @@ public class Pinger implements Session.SignalListener {
     private SessionCommunicator mSessionCommunicator;
     private Session mSession;
     private boolean disconnectedOccurred = false;
-    private boolean initiatedByOpponent = false;
     private CountDownTimer mTimer;
+    private final CountDownTimer pingDelayTimer;
 
     public Pinger(SessionCommunicator sessionCommunicator, Session session) {
         this.mSessionCommunicator = sessionCommunicator;
@@ -40,10 +37,28 @@ public class Pinger implements Session.SignalListener {
                 disconnectedOccurred = true;
             }
         };
+
+        pingDelayTimer = new CountDownTimer(1000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+            }
+
+            @Override
+            public void onFinish() {
+                Log.d(TAG, "sendPing: ");
+                try {
+                    mSession.sendSignal("ping", mSession.getConnection().getConnectionId());
+                    mTimer.start();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
     }
 
     @Override
-    public void onSignalReceived(Session session, String s, String s1, Connection connection) {
+    public synchronized void onSignalReceived(Session session, String s, String s1, Connection connection) {
+        Log.d(TAG, "onSignalReceived: received a signal");
         if (s.equals("ping") && !s1.equals(mSession.getConnection().getConnectionId())) {
             Log.d(TAG, "onSignalReceived: ping signal received");
             mTimer.cancel();
@@ -56,17 +71,12 @@ public class Pinger implements Session.SignalListener {
     }
 
     void sendPing() {
-        new CountDownTimer(1000, 1000) {
-            @Override
-            public void onTick(long millisUntilFinished) {
-            }
+        pingDelayTimer.cancel();
+        pingDelayTimer.start();
+    }
 
-            @Override
-            public void onFinish() {
-                Log.d(TAG, "sendPing: ");
-                mSession.sendSignal("ping", mSession.getConnection().getConnectionId());
-                mTimer.start();
-            }
-        }.start();
+    public void stop() {
+        mTimer.cancel();
+        pingDelayTimer.cancel();
     }
 }

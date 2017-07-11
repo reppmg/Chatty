@@ -73,10 +73,10 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
 
                     mSession = new Session.Builder(mContext, apiKey, sessionId).build();
                     mSession.setSessionListener(SessionService.this);
-                    mSession.setReconnectionListener(new ReconnectionListener(mSessionCommunicator));
                     mSession.connect(token);
 
                     pinger = new Pinger(mSessionCommunicator, mSession);
+                    mSession.setReconnectionListener(new ReconnectionListener(mSessionCommunicator, pinger));
                     mSession.setSignalListener(pinger);
                 } catch (JSONException error) {
                     Log.e(TAG, "Web Service error: " + error.getMessage());
@@ -142,6 +142,8 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
     public void onStreamDropped(Session session, Stream stream) {
         Log.i(TAG, "Stream Dropped");
         //put me in queue again
+        pinger.stop();
+        mSession.setSignalListener(null);
         session.disconnect();
         mSessionCommunicator.dropSubscriberView();
         fetchSessionConnectionData();
@@ -169,6 +171,9 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
     @Override
     public void onError(PublisherKit publisherKit, OpentokError opentokError) {
         Log.d(TAG, "onError: " + opentokError.getMessage());
+        pinger.stop();
+
+        mSession.setSignalListener(null);
         mSessionCommunicator.onError();
     }
 

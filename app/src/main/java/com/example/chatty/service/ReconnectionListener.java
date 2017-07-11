@@ -12,11 +12,13 @@ import com.opentok.android.Session;
 class ReconnectionListener implements Session.ReconnectionListener {
 
     private SessionCommunicator mSessionCommunicator;
+    private Pinger mPinger;
 
     private static final String TAG = ReconnectionListener.class.getSimpleName();
 
-    public ReconnectionListener(SessionCommunicator mSessionCommunicator) {
+    public ReconnectionListener(SessionCommunicator mSessionCommunicator, Pinger pinger) {
         this.mSessionCommunicator = mSessionCommunicator;
+        mPinger = pinger;
     }
 
     @Override
@@ -30,5 +32,6 @@ class ReconnectionListener implements Session.ReconnectionListener {
     public void onReconnected(Session session) {
         Log.d(TAG, "onReconnected: ");
         mSessionCommunicator.showSubscriber();
+        mPinger.sendPing();
     }
 }
