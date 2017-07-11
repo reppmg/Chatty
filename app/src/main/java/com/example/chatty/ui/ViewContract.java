@@ -13,11 +13,8 @@ public interface ViewContract {
 
     void setPublisherSource(View view);
 
+    void setSubscriberErrorView(boolean disconnected);
+
     void dropSubscriberView();
-
-    void setSubscriberErrorView();
-
-
-    Context getContext();
 
 }

@@ -1,21 +1,19 @@
 package com.example.chatty.ui;
 
 import android.Manifest;
-import android.app.Application;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import com.example.chatty.App;
 import com.example.chatty.presenter.Presenter;
@@ -80,12 +78,12 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
         super.onStop();
         Log.d(TAG, "onStop: ");
 
-//        if (!onSavedWasCalled) {
-//            //assuming this is exit case
-//            presenter.unsubscribe();
-//            presenter.disconnect();
-//            finish();
-//        }
+        if (!onSavedWasCalled) {
+            //assuming this is exit case
+            presenter.unsubscribe();
+            presenter.disconnect();
+            finish();
+        }
 
         try {
             mSubscriberViewContainer.removeAllViews();
@@ -191,6 +189,9 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
         if (view != null) {
             mPublisherViewContainer.removeAllViews();
             mPublisherViewContainer.addView(view);
+            view.bringToFront();
+//            mSubscriberViewContainer.removeAllViews();
+//            mSubscriberViewContainer.addView(view);
         }
     }
 
@@ -202,6 +203,8 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
     @Override
     public void setSubscriberSource(View view) {
         if (view != null) {
+//            mPublisherViewContainer.removeAllViews();
+//            mPublisherViewContainer.addView(view);
             mSubscriberViewContainer.removeAllViews();
             mSubscriberViewContainer.addView(view);
         }
@@ -211,7 +214,13 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
      * Set error message in area for opponent video
      */
     @Override
-    public void setSubscriberErrorView() {
+    public void setSubscriberErrorView(boolean disconnected) {
+        TextView errorText = (TextView) mErrorView.findViewById(R.id.error_text);
+        if (disconnected) {
+            errorText.setText(R.string.reconnect_waiting);
+        } else {
+            errorText.setText(getString(R.string.error_string));
+        }
         mSubscriberViewContainer.removeAllViews();
         mSubscriberViewContainer.addView(mErrorView);
     }
@@ -224,13 +233,6 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
         mSubscriberViewContainer.removeAllViews();
         mSubscriberViewContainer.addView(mWaitingView);
     }
-
-
-    @Override
-    public Context getContext() {
-        return getApplicationContext();
-    }
-
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {

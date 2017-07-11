@@ -9,9 +9,12 @@ import android.view.View;
 public interface SessionCommunicator {
     void dropSubscriberView();
 
-    void streamReceived(View view);
+    void showSubscriber();
 
-    void showPublisher(View view);
+    void showPublisher();
 
     void onError();
+
+    void internetFailure();
+
 }

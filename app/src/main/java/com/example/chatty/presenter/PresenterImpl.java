@@ -1,6 +1,7 @@
 package com.example.chatty.presenter;
 
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.View;
 
@@ -60,30 +61,8 @@ public class PresenterImpl implements Presenter, SessionCommunicator {
 
     @Override
     public void disconnect() {
-        if (mSessionService != null){
+        if (mSessionService != null) {
             mSessionService.disconnect();
-        }
-    }
-
-    @Override
-    public void onRestoreState(Bundle savedInstanceState) {
-        if (savedInstanceState != null
-                && savedInstanceState.containsKey(API_KEY_TAG)
-                && savedInstanceState.containsKey(SESSION_TAG)
-                && savedInstanceState.containsKey(TOKEN_TAG)) {
-//            final String apiKey = savedInstanceState.getString(API_KEY_TAG);
-//            final String session = savedInstanceState.getString(SESSION_TAG);
-//            final String token = savedInstanceState.getString(TOKEN_TAG);
-//
-//            mSessionService.restoreSession(apiKey, session, token);
-            Log.d(TAG, "onRestoreState: saved state is valid");
-            mSessionService.restoreSession();
-            View publisherView = mSessionService.getPublisherView();
-            View subscriberView = mSessionService.getSubscriberView();
-//            if (publisherView != null && subscriberView != null) {
-            mViewContract.setPublisherSource(publisherView);
-            mViewContract.setSubscriberSource(subscriberView);
-//            }
         }
     }
 
@@ -100,23 +79,39 @@ public class PresenterImpl implements Presenter, SessionCommunicator {
     }
 
 
-    public void showPublisher(View view) {
-        mViewContract.setPublisherSource(view);
+    public void showPublisher() {
+        mViewContract.setPublisherSource(mSessionService.getPublisherView());
+    }
+
+
+    @Override
+    public void internetFailure() {
+        mViewContract.setSubscriberErrorView(true);
     }
 
 
     @Override
     public void onError() {
-        mViewContract.setSubscriberErrorView();
+        mViewContract.setSubscriberErrorView(false);
         mSessionService.unsubscribe();
-        mSessionService.fetchSessionConnectionData();
+        new CountDownTimer(5000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+
+            }
+
+            @Override
+            public void onFinish() {
+                mSessionService.fetchSessionConnectionData();
+            }
+        }.start();
     }
 
     public void dropSubscriberView() {
         mViewContract.dropSubscriberView();
     }
 
-    public void streamReceived(View view) {
-        mViewContract.setSubscriberSource(view);
+    public void showSubscriber() {
+        mViewContract.setSubscriberSource(mSessionService.getSubscriberView());
     }
 }

@@ -43,6 +43,7 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
 
     private SessionCommunicator mSessionCommunicator;
     private RequestQueue mRequestQueue;
+    private Pinger pinger;
 
     public SessionService(Context context) {
         mContext = context;
@@ -72,8 +73,11 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
 
                     mSession = new Session.Builder(mContext, apiKey, sessionId).build();
                     mSession.setSessionListener(SessionService.this);
+                    mSession.setReconnectionListener(new ReconnectionListener(mSessionCommunicator));
                     mSession.connect(token);
 
+                    pinger = new Pinger(mSessionCommunicator, mSession);
+                    mSession.setSignalListener(pinger);
                 } catch (JSONException error) {
                     Log.e(TAG, "Web Service error: " + error.getMessage());
                 }
@@ -97,9 +101,10 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         mPublisher = new Publisher.Builder(mContext).build();
         mPublisher.setPublisherListener(this);
 
+        mPublisher.startPreview();
         mSession.publish(mPublisher);
-        mSessionCommunicator.showPublisher(mPublisher.getView());
         Log.d(TAG, "mPublisher: publishing the stream");
+        mSessionCommunicator.showPublisher();
     }
 
     @Override
@@ -122,11 +127,11 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
     @Override
     public void onStreamReceived(Session session, Stream stream) {
         Log.i(TAG, "Stream Received");
-
-//        if (mSubscriber == null)
         mSubscriber = new Subscriber.Builder(mContext, stream).build();
         mSession.subscribe(mSubscriber);
-        mSessionCommunicator.streamReceived(mSubscriber.getView());
+        mSessionCommunicator.showSubscriber();
+        //start pinging in case of internet failure
+        pinger.sendPing();
     }
 
 
@@ -174,17 +179,6 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
 
     /*When user is in queue, and application closes*/
     public void unsubscribe() {
-//        try {
-//            //cancel all foreground request, because we're going to launch it again
-//            mRequestQueue.cancelAll(new RequestQueue.RequestFilter() {
-//                @Override
-//                public boolean apply(Request<?> request) {
-//                    return true;
-//                }
-//            });
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
         if (mSession != null) {
             RequestQueue request = Volley.newRequestQueue(mContext);
             request.add(new StringRequest(Request.Method.GET,
@@ -226,37 +220,25 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         return token;
     }
 
-    public View getPublisherView(){
+    public View getPublisherView() {
         if (mPublisher == null)
             return null;
-        mSession.publish(mPublisher);
+        Log.d(TAG, "getPublisherView: ");
+        mPublisher.setPublishVideo(true);
+        mPublisher.startPreview();
         return mPublisher.getView();
     }
 
-    public View getSubscriberView(){
-        if (mSubscriber == null){
-            return  null;
+    public View getSubscriberView() {
+        if (mSubscriber == null) {
+            return null;
         }
         return mSubscriber.getView();
     }
 
-//    public void restoreSession(String apiKey, String session, String token) {
-//
-////        Log.d(TAG, "restoreSession; session: " + session);
-////        this.apiKey = apiKey;
-////        this.sessionId = session;
-////        this.token = token;
-////        mSession = new Session.Builder(mContext, apiKey, session).build();
-////        mSession.connect(token);
-//    }
-    public void restoreSession(){
-        if (mSubscriber == null){
-            //if there was no chat before rotation
-//            fetchSessionConnectionData();
-        }
-    }
 
-    public boolean isInSession(){
+    public boolean isInSession() {
         return mSession != null;
     }
+
 }

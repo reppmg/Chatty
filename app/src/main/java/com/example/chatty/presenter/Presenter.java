@@ -18,8 +18,6 @@ public interface Presenter  {
 
     void onSaveInstanceState(Bundle outState);
 
-    void onRestoreState(Bundle savedInstanceState);
-
     void disconnect();
 
     View getPublisherView();

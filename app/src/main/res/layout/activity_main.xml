@@ -6,14 +6,9 @@
     tools:context="com.example.chatty.ui.MainActivity">
 
     <FrameLayout
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:keepScreenOn="true">
-
-        <FrameLayout
-            android:id="@+id/subscriber_container"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent" />
 
         <FrameLayout
             android:id="@+id/publisher_container"
@@ -25,6 +20,11 @@
             android:layout_marginRight="16dp"
             android:background="#000000"
             android:padding="2dp" />
+        <FrameLayout
+            android:id="@+id/subscriber_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
     </FrameLayout>
 
 </RelativeLayout>
