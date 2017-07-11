@@ -6,7 +6,7 @@ import com.example.chatty.presenter.SessionCommunicator;
 import com.opentok.android.Session;
 
 /**
- * Created by 1 on 11.07.2017.
+ * listener, dealing with reconnection events from OpenTok SDK
  */
 
 class ReconnectionListener implements Session.ReconnectionListener {
@@ -16,7 +16,7 @@ class ReconnectionListener implements Session.ReconnectionListener {
 
     private static final String TAG = ReconnectionListener.class.getSimpleName();
 
-    public ReconnectionListener(SessionCommunicator mSessionCommunicator, Pinger pinger) {
+    ReconnectionListener(SessionCommunicator mSessionCommunicator, Pinger pinger) {
         this.mSessionCommunicator = mSessionCommunicator;
         mPinger = pinger;
     }

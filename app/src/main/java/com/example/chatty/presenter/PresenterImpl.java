@@ -2,7 +2,6 @@ package com.example.chatty.presenter;
 
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.util.Log;
 import android.view.View;
 
 import com.example.chatty.App;
@@ -10,6 +9,7 @@ import com.example.chatty.service.SessionService;
 import com.example.chatty.ui.ViewContract;
 
 import javax.inject.Inject;
+
 
 
 public class PresenterImpl implements Presenter, SessionCommunicator {
@@ -113,5 +113,18 @@ public class PresenterImpl implements Presenter, SessionCommunicator {
 
     public void showSubscriber() {
         mViewContract.setSubscriberSource(mSessionService.getSubscriberView());
+    }
+
+    @Override
+    public void onResume() {
+        if (mSessionService.resumeSession()){
+            mViewContract.setPublisherSource(mSessionService.getPublisherView());
+            mViewContract.setSubscriberSource(mSessionService.getSubscriberView());
+        }
+    }
+
+    @Override
+    public void onPause() {
+        mSessionService.pauseSession();
     }
 }

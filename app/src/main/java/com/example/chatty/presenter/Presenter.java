@@ -25,4 +25,8 @@ public interface Presenter  {
     View getSubscriberView();
 
     boolean isInSession();
+
+    void onResume();
+
+    void onPause();
 }

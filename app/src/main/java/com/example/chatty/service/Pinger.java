@@ -8,22 +8,23 @@ import com.opentok.android.Connection;
 import com.opentok.android.Session;
 
 /**
- * Created by 1 on 11.07.2017.
+ * Class responsible for detecting connection losses
+ * ping opponent every 0.5s and marks opponent as disconnected after 6 seconds of no response
  */
 
-public class Pinger implements Session.SignalListener {
+class Pinger implements Session.SignalListener {
 
     private static final String TAG = Pinger.class.getSimpleName();
     private SessionCommunicator mSessionCommunicator;
     private Session mSession;
     private boolean disconnectedOccurred = false;
-    private CountDownTimer mTimer;
+    private CountDownTimer mTimeoutTimer;
     private final CountDownTimer pingDelayTimer;
 
-    public Pinger(SessionCommunicator sessionCommunicator, Session session) {
+    Pinger(SessionCommunicator sessionCommunicator, Session session) {
         this.mSessionCommunicator = sessionCommunicator;
         mSession = session;
-        mTimer = new CountDownTimer(5000, 1000) {
+        mTimeoutTimer = new CountDownTimer(6000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
 
@@ -31,14 +32,14 @@ public class Pinger implements Session.SignalListener {
 
             @Override
             public void onFinish() {
-                Log.d(TAG, "onFinish: no response for 3 second");
+                Log.d(TAG, "connection timed out");
                 if (!disconnectedOccurred)
                     mSessionCommunicator.internetFailure();
                 disconnectedOccurred = true;
             }
         };
 
-        pingDelayTimer = new CountDownTimer(1000, 1000) {
+        pingDelayTimer = new CountDownTimer(500, 500) {
             @Override
             public void onTick(long millisUntilFinished) {
             }
@@ -48,7 +49,7 @@ public class Pinger implements Session.SignalListener {
                 Log.d(TAG, "sendPing: ");
                 try {
                     mSession.sendSignal("ping", mSession.getConnection().getConnectionId());
-                    mTimer.start();
+                    mTimeoutTimer.start();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -56,12 +57,15 @@ public class Pinger implements Session.SignalListener {
         };
     }
 
+
+    /*Listens for signals from session, and if it's ping signal,
+     resets timeout timer and sends ping signal to session*/
     @Override
     public synchronized void onSignalReceived(Session session, String s, String s1, Connection connection) {
         Log.d(TAG, "onSignalReceived: received a signal");
         if (s.equals("ping") && !s1.equals(mSession.getConnection().getConnectionId())) {
             Log.d(TAG, "onSignalReceived: ping signal received");
-            mTimer.cancel();
+            mTimeoutTimer.cancel();
             sendPing();
             if (disconnectedOccurred) {
                 mSessionCommunicator.showSubscriber();
@@ -75,8 +79,8 @@ public class Pinger implements Session.SignalListener {
         pingDelayTimer.start();
     }
 
-    public void stop() {
-        mTimer.cancel();
+    void stop() {
+        mTimeoutTimer.cancel();
         pingDelayTimer.cancel();
     }
 }

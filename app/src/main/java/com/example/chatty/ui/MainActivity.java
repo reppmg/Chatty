@@ -1,7 +1,6 @@
 package com.example.chatty.ui;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
@@ -40,60 +39,20 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
     private View mWaitingView;
     private View mErrorView;
 
-
     private boolean onSavedWasCalled = false;
 
-
     @Inject
-    Presenter presenter;
+    Presenter mPresenter;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        Log.d(TAG, "onCreate: savedState = null: " + (savedInstanceState == null));
+    private void initViewContainers() {
+        mPublisherViewContainer = (FrameLayout) findViewById(R.id.publisher_container);
+        mSubscriberViewContainer = (FrameLayout) findViewById(R.id.subscriber_container);
 
-        onSavedWasCalled = false;
-
-        App.getAppComponent().inject(this);
-
-        presenter.setViewContract(this);
-
-        requestPermissions();
-
+        mWaitingView = View.inflate(this, R.layout.waiting_for_opponent_view, null);
+        mErrorView = View.inflate(this, R.layout.error_view, null);
+        mSubscriberViewContainer.addView(mWaitingView);
     }
 
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Log.d(TAG, "onStart: ");
-    }
-
-    /**
-     * clearing connection and layout on exit
-     */
-    @Override
-    protected void onStop() {
-        super.onStop();
-        Log.d(TAG, "onStop: ");
-
-        if (!onSavedWasCalled) {
-            //assuming this is exit case
-            presenter.unsubscribe();
-            presenter.disconnect();
-            finish();
-        }
-
-        try {
-            mSubscriberViewContainer.removeAllViews();
-            mPublisherViewContainer.removeAllViews();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-//        finish();
-    }
 
     /*Permissions handling*/
 
@@ -110,11 +69,11 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
 
             // initialize and connect to the session
             Log.i(LOG_TAG, "subscribing");
-            if (presenter.isInSession()) {
-                setSubscriberSource(presenter.getSubscriberView());
-                setPublisherSource(presenter.getPublisherView());
+            if (mPresenter.isInSession()) {
+                setSubscriberSource(mPresenter.getSubscriberView());
+                setPublisherSource(mPresenter.getPublisherView());
             } else {
-                presenter.subscribe();
+                mPresenter.subscribe();
             }
             return true;
         } else {
@@ -123,14 +82,6 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
         return false;
     }
 
-    private void initViewContainers() {
-        mPublisherViewContainer = (FrameLayout) findViewById(R.id.publisher_container);
-        mSubscriberViewContainer = (FrameLayout) findViewById(R.id.subscriber_container);
-
-        mWaitingView = View.inflate(this, R.layout.waiting_for_opponent_view, null);
-        mErrorView = View.inflate(this, R.layout.error_view, null);
-        mSubscriberViewContainer.addView(mWaitingView);
-    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -189,9 +140,6 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
         if (view != null) {
             mPublisherViewContainer.removeAllViews();
             mPublisherViewContainer.addView(view);
-            view.bringToFront();
-//            mSubscriberViewContainer.removeAllViews();
-//            mSubscriberViewContainer.addView(view);
         }
     }
 
@@ -203,8 +151,6 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
     @Override
     public void setSubscriberSource(View view) {
         if (view != null) {
-//            mPublisherViewContainer.removeAllViews();
-//            mPublisherViewContainer.addView(view);
             mSubscriberViewContainer.removeAllViews();
             mSubscriberViewContainer.addView(view);
         }
@@ -234,20 +180,75 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
         mSubscriberViewContainer.addView(mWaitingView);
     }
 
+
+
+    /*Lifecycle methods*/
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        Log.d(TAG, "onCreate: savedState = null: " + (savedInstanceState == null));
+
+        onSavedWasCalled = false;
+
+        App.getAppComponent().inject(this);
+
+        mPresenter.setViewContract(this);
+
+        requestPermissions();
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart: ");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume: ");
+        mPresenter.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mPresenter.onPause();
+    }
+
+    /**
+     * clearing connection and layout on exit
+     */
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop: ");
+
+        if (isFinishing()) {
+            //assuming this is exit case
+            mPresenter.unsubscribe();
+            mPresenter.disconnect();
+        }
+
+        try {
+            mSubscriberViewContainer.removeAllViews();
+            mPublisherViewContainer.removeAllViews();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         Log.d(TAG, "onSaveInstanceState: ");
         onSavedWasCalled = true;
-        presenter.onSaveInstanceState(outState);
+        mPresenter.onSaveInstanceState(outState);
     }
-
-//    @Override
-//    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-//        Log.d(TAG, "onRestoreInstanceState: bundle is null " + (savedInstanceState == null));
-////        super.onRestoreInstanceState(savedInstanceState);
-////        presenter.onRestoreState(savedInstanceState);
-//    }
 
     @Override
     protected void onDestroy() {

@@ -142,9 +142,7 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
     public void onStreamDropped(Session session, Stream stream) {
         Log.i(TAG, "Stream Dropped");
         //put me in queue again
-        pinger.stop();
-        mSession.setSignalListener(null);
-        session.disconnect();
+        disconnect();
         mSessionCommunicator.dropSubscriberView();
         fetchSessionConnectionData();
     }
@@ -208,6 +206,7 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         Log.d(TAG, "disconnect: ");
         if (mSession != null) {
             Log.d(TAG, "disconnect: sessionId: " + mSession.getSessionId());
+            pinger.stop();
             mSession.disconnect();
             mSession = null;
         }
@@ -246,4 +245,19 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         return mSession != null;
     }
 
+    public void pauseSession() {
+        Log.d(TAG, "pauseSession: ");
+        if (mSession != null){
+            mSession.onPause();
+        }
+    }
+
+    public boolean resumeSession() {
+        Log.d(TAG, "resumeSession: ");
+        if (mSession != null){
+            mSession.onResume();
+            return true;
+        }
+        return false;
+    }
 }
