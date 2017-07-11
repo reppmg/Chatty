@@ -20,6 +20,7 @@ public class Pinger implements Session.SignalListener {
     private SessionCommunicator mSessionCommunicator;
     private Session mSession;
     private boolean disconnectedOccurred = false;
+    private boolean initiatedByOpponent = false;
     private CountDownTimer mTimer;
 
     public Pinger(SessionCommunicator sessionCommunicator, Session session) {

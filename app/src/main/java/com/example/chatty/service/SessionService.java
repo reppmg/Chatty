@@ -192,7 +192,7 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
                     new Response.ErrorListener() {
                         @Override
                         public void onErrorResponse(VolleyError error) {
-                            Log.d(TAG, "unsubscribe onErrorResponse: " + error.getMessage());
+                            Log.e(TAG, "unsubscribe onErrorResponse: " + error.getMessage());
 
                         }
                     }));
