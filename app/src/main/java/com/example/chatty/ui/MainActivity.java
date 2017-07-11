@@ -39,8 +39,6 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
     private View mWaitingView;
     private View mErrorView;
 
-    private boolean onSavedWasCalled = false;
-
     @Inject
     Presenter mPresenter;
 
@@ -190,8 +188,6 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
         setContentView(R.layout.activity_main);
         Log.d(TAG, "onCreate: savedState = null: " + (savedInstanceState == null));
 
-        onSavedWasCalled = false;
-
         App.getAppComponent().inject(this);
 
         mPresenter.setViewContract(this);
@@ -239,15 +235,6 @@ public class MainActivity extends AppCompatActivity implements ViewContract, Eas
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        Log.d(TAG, "onSaveInstanceState: ");
-        onSavedWasCalled = true;
-        mPresenter.onSaveInstanceState(outState);
     }
 
     @Override

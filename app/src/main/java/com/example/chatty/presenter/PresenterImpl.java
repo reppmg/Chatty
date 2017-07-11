@@ -13,12 +13,7 @@ import javax.inject.Inject;
 
 
 public class PresenterImpl implements Presenter, SessionCommunicator {
-    private static final String LOG_TAG = PresenterImpl.class.getSimpleName();
-    private static final String API_KEY_TAG = "apiKey";
-    private static final String TOKEN_TAG = "token";
-    private static final String SESSION_TAG = "session";
     private static final String TAG = PresenterImpl.class.getSimpleName();
-
 
     private ViewContract mViewContract;
 
@@ -30,8 +25,10 @@ public class PresenterImpl implements Presenter, SessionCommunicator {
         mSessionService.setPresenter(this);
     }
 
-    public void setViewContract(ViewContract viewContract) {
-        this.mViewContract = viewContract;
+
+    @Override
+    public void subscribe() {
+        mSessionService.fetchSessionConnectionData();
     }
 
     /**
@@ -66,29 +63,19 @@ public class PresenterImpl implements Presenter, SessionCommunicator {
         }
     }
 
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        outState.putString(API_KEY_TAG, mSessionService.getApiKey());
-        outState.putString(TOKEN_TAG, mSessionService.getToken());
-        outState.putString(SESSION_TAG, mSessionService.getSessionId());
-    }
 
     @Override
-    public void subscribe() {
-        mSessionService.fetchSessionConnectionData();
+    public void onResume() {
+        if (mSessionService.resumeSession()){
+            mViewContract.setPublisherSource(mSessionService.getPublisherView());
+            mViewContract.setSubscriberSource(mSessionService.getSubscriberView());
+        }
     }
-
-
-    public void showPublisher() {
-        mViewContract.setPublisherSource(mSessionService.getPublisherView());
-    }
-
 
     @Override
-    public void internetFailure() {
-        mViewContract.setSubscriberErrorView(true);
+    public void onPause() {
+        mSessionService.pauseSession();
     }
-
 
     @Override
     public void onError() {
@@ -115,16 +102,18 @@ public class PresenterImpl implements Presenter, SessionCommunicator {
         mViewContract.setSubscriberSource(mSessionService.getSubscriberView());
     }
 
-    @Override
-    public void onResume() {
-        if (mSessionService.resumeSession()){
-            mViewContract.setPublisherSource(mSessionService.getPublisherView());
-            mViewContract.setSubscriberSource(mSessionService.getSubscriberView());
-        }
+    public void showPublisher() {
+        mViewContract.setPublisherSource(mSessionService.getPublisherView());
     }
 
     @Override
-    public void onPause() {
-        mSessionService.pauseSession();
+    public void internetFailure() {
+        mViewContract.setSubscriberErrorView(true);
+    }
+
+
+    public void setViewContract(ViewContract viewContract) {
+        this.mViewContract = viewContract;
     }
 }
+

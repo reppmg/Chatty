@@ -141,7 +141,7 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
     @Override
     public void onStreamDropped(Session session, Stream stream) {
         Log.i(TAG, "Stream Dropped");
-        //put me in queue again
+        //put user in queue again
         disconnect();
         mSessionCommunicator.dropSubscriberView();
         fetchSessionConnectionData();
@@ -169,16 +169,13 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
     @Override
     public void onError(PublisherKit publisherKit, OpentokError opentokError) {
         Log.d(TAG, "onError: " + opentokError.getMessage());
-        pinger.stop();
 
+        //when an error occurs, we should definitely stop sending ping signals
+        pinger.stop();
         mSession.setSignalListener(null);
         mSessionCommunicator.onError();
     }
 
-    public void setPresenter(SessionCommunicator presenter) {
-        Log.d(TAG, "setPresenter: ");
-        this.mSessionCommunicator = presenter;
-    }
 
     /*When user is in queue, and application closes*/
     public void unsubscribe() {
@@ -196,7 +193,7 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
                         @Override
                         public void onErrorResponse(VolleyError error) {
                             Log.e(TAG, "unsubscribe onErrorResponse: " + error.getMessage());
-
+                            unsubscribe();
                         }
                     }));
         }
@@ -210,6 +207,35 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
             mSession.disconnect();
             mSession = null;
         }
+    }
+
+
+    /*when activity is being paused, we need to pause session*/
+    public void pauseSession() {
+        Log.d(TAG, "pauseSession: ");
+        if (mSession != null){
+            mSession.onPause();
+        }
+    }
+
+    /**
+     * resumes session, when activity returns to foreground
+     * @return true if there was a session to resume
+     */
+    public boolean resumeSession() {
+        Log.d(TAG, "resumeSession: ");
+        if (mSession != null){
+            mSession.onResume();
+            return true;
+        }
+        return false;
+    }
+
+
+    /*Getters and setters*/
+    public void setPresenter(SessionCommunicator presenter) {
+        Log.d(TAG, "setPresenter: ");
+        this.mSessionCommunicator = presenter;
     }
 
     public String getApiKey() {
@@ -245,19 +271,5 @@ public class SessionService implements Session.SessionListener, PublisherKit.Pub
         return mSession != null;
     }
 
-    public void pauseSession() {
-        Log.d(TAG, "pauseSession: ");
-        if (mSession != null){
-            mSession.onPause();
-        }
-    }
 
-    public boolean resumeSession() {
-        Log.d(TAG, "resumeSession: ");
-        if (mSession != null){
-            mSession.onResume();
-            return true;
-        }
-        return false;
-    }
 }

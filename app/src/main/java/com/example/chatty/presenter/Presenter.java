@@ -16,8 +16,6 @@ public interface Presenter  {
 
     void unsubscribe();
 
-    void onSaveInstanceState(Bundle outState);
-
     void disconnect();
 
     View getPublisherView();
